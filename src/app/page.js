@@ -1,101 +1,183 @@
-import Image from "next/image";
+'use client';
 
-export default function Home() {
+import { useState, useEffect } from 'react';
+import { collection, getDocs, query, where } from "firebase/firestore";
+import { db, auth } from './firebaseConfig';
+import Image from 'next/image';
+import { Search, Share2, Menu, User, IndianRupee } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import Navbar from './components/Navbar';
+import { onAuthStateChanged } from "firebase/auth";
+
+const NoteCard = ({ note }) => {
+  const router = useRouter();
+
+  const handleClick = () => {
+    router.push(`/course?id=${note.id}`);
+  };
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.js
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
+    <div 
+      onClick={handleClick}
+      className="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow cursor-pointer"
+    >
+      <div className="p-4">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center">
             <Image
-              className="dark:invert"
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
+              src="/PDF_file_icon.png"
+              alt="PDF icon"
+              width={24}
+              height={24}
+              className="mr-2"
             />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+            <h3 className="font-bold text-lg text-black">{note.subject}</h3>
+          </div>
+          {note.isPaid && (
+            <span className="flex items-center text-green-600">
+              <IndianRupee size={16} className="mr-1" />
+              {note.amount}
+            </span>
+          )}
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+        <p className="text-sm text-gray-600">{note.college} - {note.branch}</p>
+        <p className="text-sm text-gray-600">Class: {note.class}, Unit: {note.unit}</p>
+        <p className="text-sm text-gray-600">Downloads: {note.downloaderEmails ? note.downloaderEmails.length : 0}</p>
+        <p className="text-sm text-black">{note.description.substring(0, 100)}...</p>
+        <p className="text-sm text-gray-600 mt-2">Uploaded by: {note.uploaderEmail}</p>
+      </div>
     </div>
   );
-}
+};
+
+const QuickLink = ({ text, onClick }) => (
+  <button 
+    className="bg-gray-100 text-gray-800 px-4 py-2 rounded-full text-sm font-medium hover:bg-gray-200 transition-colors"
+    onClick={onClick}
+  >
+    {text}
+  </button>
+);
+
+const ScholarNoteDashboard = () => {
+  const router = useRouter();
+  const [academicNotes, setAcademicNotes] = useState([]);
+  const [personalNotes, setPersonalNotes] = useState([]);
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      if (currentUser) {
+        fetchNotes(currentUser.email);
+      } else {
+        router.push('/login');
+      }
+    });
+
+    return () => unsubscribe();
+  }, [router]);
+
+  const fetchNotes = async (userEmail) => {
+    const notesCollection = collection(db, "notes");
+    const notesSnapshot = await getDocs(notesCollection);
+    const notesList = notesSnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+    setAcademicNotes(notesList);
+
+    // Fetch personal notes (uploaded by the user)
+    const personalNotesQuery = query(
+      notesCollection,
+      where("uploaderEmail", "==", userEmail)
+    );
+    const personalNotesSnapshot = await getDocs(personalNotesQuery);
+    const personalNotesList = personalNotesSnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+    setPersonalNotes(personalNotesList);
+  };
+
+  const handleCreateNote = () => {
+    router.push('/create-note');
+  };
+
+  const handleLandingPageClick = () => {
+    router.push('/landing');
+  };
+
+  const handleProfileClick = () => {
+    router.push('/profile');
+  };
+
+  if (!user) {
+    return <div>Loading...</div>;
+  }
+
+  return (
+    <div className="bg-gray-100 min-h-screen">
+      <Navbar onCreateNote={handleCreateNote} />  {/* Add the common Navbar here */}
+
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <section className="mb-12">
+          <div 
+            className="rounded-lg p-12 text-center bg-cover bg-center relative min-h-[400px] flex flex-col justify-center items-center"
+            style={{ backgroundImage: "url('/add.png')" }}
+          >
+            <div className="absolute inset-0 bg-black opacity-50 rounded-lg"></div>
+            <div className="relative z-10 w-full">
+              <h2 className="text-4xl font-bold mb-6 text-white">Share and discover notes from your classes</h2>
+              <div className="flex max-w-xl mx-auto">
+                <div className="flex-grow flex items-center bg-white rounded-l-full">
+                  <Search className="ml-4 text-gray-400" size={20} />
+                  <input
+                    type="text"
+                    placeholder="Search for a note"
+                    className="w-full py-3 px-4 rounded-l-full focus:outline-none text-gray-900"
+                  />
+                </div>
+                <button className="bg-blue-500 text-white rounded-r-full px-8 py-3 hover:bg-blue-400 transition-colors text-lg font-semibold">
+                  Explore Notes
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="mb-12">
+          <h2 className="text-2xl font-bold mb-4 text-gray-900">Academic Notes</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {academicNotes.map((note) => (
+              <NoteCard key={note.id} note={note} />
+            ))}
+          </div>
+        </section>
+
+        <section className="mb-12">
+          <h2 className="text-2xl font-bold mb-4 text-gray-900">My Notes/Downloaded Notes</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {personalNotes.map((note) => (
+              <NoteCard key={note.id} note={note} />
+            ))}
+          </div>
+        </section>
+
+        <section>
+          <h2 className="text-2xl font-bold mb-4 text-gray-900">Quick Links</h2>
+          <div className="flex space-x-4">
+            <QuickLink text="Upload Notes" onClick={handleCreateNote} />
+            <QuickLink text="Browse Categories" onClick={() => console.log('Browse Categories clicked')} />
+            <QuickLink text="View Popular Notes" onClick={() => console.log('View Popular Notes clicked')} />
+            <QuickLink text="Landing page" onClick={handleLandingPageClick} />
+            <QuickLink text="My Profile" onClick={handleProfileClick} />
+          </div>
+        </section>
+      </main>
+    </div>
+  );
+};
+
+export default ScholarNoteDashboard;

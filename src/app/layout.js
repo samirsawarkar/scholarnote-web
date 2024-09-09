@@ -1,5 +1,7 @@
 import localFont from "next/font/local";
 import "./globals.css";
+import { getApps, initializeApp } from "firebase/app";
+import { getAuth } from "firebase/auth";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -11,6 +13,19 @@ const geistMono = localFont({
   variable: "--font-geist-mono",
   weight: "100 900",
 });
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDSC91UhsaFsYEBTSFQr9V1JXtgg31Abeo",
+  authDomain: "scholarnote-73796.firebaseapp.com",
+  projectId: "scholarnote-73796",
+  storageBucket: "scholarnote-73796.appspot.com",
+  messagingSenderId: "293851557107",
+  appId: "1:293851557107:web:2b3900e3215e639bd0db86"
+};
+
+// Initialize Firebase
+const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+const auth = getAuth(app);
 
 export const metadata = {
   title: "Create Next App",
