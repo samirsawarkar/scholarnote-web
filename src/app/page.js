@@ -9,6 +9,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Navbar from './components/Navbar';
 import { onAuthStateChanged } from "firebase/auth";
+import TestFirebase from './components/TestFirebase';
 
 const NoteCard = ({ note }) => {
   const router = useRouter();
