@@ -1,7 +1,17 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  optimizeFonts: false,  // This will disable Next.js' automatic font optimization
+  reactStrictMode: true,
+  webpack: (config) => {
+    config.resolve.alias.canvas = false;
+    return config;
+  },
+  images: {
+    domains: ['lh3.googleusercontent.com', 'api.dicebear.com'],
+  },
   // ... other config options
 }
 
-module.exports = nextConfig
+module.exports = {
+  ...nextConfig,
+  // ... other configurations
+};
