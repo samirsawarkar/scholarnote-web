@@ -6,33 +6,40 @@ import { Edit3, Book, LogOut } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { auth, db } from '../firebaseConfig';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { getFirestore, doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import Link from 'next/link';
 
 const UserProfile = () => {
   const [user, setUser] = useState(null);
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [userNotes, setUserNotes] = useState([]);
   const router = useRouter();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       try {
         if (currentUser) {
-          console.log("Current user:", currentUser);
           setUser(currentUser);
           
-          // Fetch additional user data from Firestore
+          const db = getFirestore();
           const userDocRef = doc(db, 'users', currentUser.uid);
           const userDocSnap = await getDoc(userDocRef);
           
           if (userDocSnap.exists()) {
-            console.log("User data:", userDocSnap.data());
             setUserData(userDocSnap.data());
           } else {
             console.log("No user data found in Firestore");
             setUserData({});
           }
+
+          // Fetch user's notes
+          const notesQuery = query(collection(db, 'notes'), where('uploaderUid', '==', currentUser.uid));
+          const notesSnapshot = await getDocs(notesQuery);
+          const notesData = notesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          setUserNotes(notesData);
+
         } else {
           console.log("No user logged in");
           router.push('/login');
@@ -40,6 +47,9 @@ const UserProfile = () => {
       } catch (err) {
         console.error("Error fetching user data:", err);
         setError(err.message);
+        if (err.code === 'permission-denied') {
+          setError("Permission denied. Please check Firestore rules.");
+        }
       } finally {
         setLoading(false);
       }
@@ -65,6 +75,10 @@ const UserProfile = () => {
     // Fallback to DiceBear API if no photoURL is available
     const seed = user?.email || 'default';
     return `https://api.dicebear.com/5.x/initials/svg?seed=${seed}`;
+  };
+
+  const handleNoteClick = (noteId) => {
+    router.push(`/course?id=${noteId}`);
   };
 
   if (loading) {
@@ -121,12 +135,16 @@ const UserProfile = () => {
           <div className="mt-8">
             <h3 className="text-xl font-bold text-gray-800 mb-4">My Notes</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {userData?.notes ? userData.notes.map((note, index) => (
-                <div key={index} className="bg-gray-50 p-4 rounded-lg shadow flex items-center space-x-3">
+              {userNotes.length > 0 ? userNotes.map((note) => (
+                <div 
+                  key={note.id} 
+                  className="bg-gray-50 p-4 rounded-lg shadow flex items-center space-x-3 cursor-pointer hover:bg-gray-100 transition-colors"
+                  onClick={() => handleNoteClick(note.id)}
+                >
                   <Book className="text-blue-500" size={24} />
                   <div>
                     <h4 className="text-gray-800 font-semibold">{note.title}</h4>
-                    <p className="text-gray-600 text-sm">{note.pages} pages</p>
+                    <p className="text-gray-600 text-sm">{note.description || 'No description'}</p>
                   </div>
                 </div>
               )) : <p>No notes available.</p>}

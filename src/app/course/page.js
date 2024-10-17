@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import Image from 'next/image';
+import React, { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { doc, getDoc, updateDoc, arrayUnion, Timestamp } from "firebase/firestore";
 import { db, auth } from '../firebaseConfig';
 import { Star, ThumbsUp, ThumbsDown, FileText, IndianRupee, X, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -71,90 +71,6 @@ const Comment = ({ name, date, rating, comment, likes }) => (
   </div>
 );
 
-const PDFViewer = ({ url, onClose }) => {
-  const [numPages, setNumPages] = useState(null);
-  const [pageNumber, setPageNumber] = useState(1);
-  const [scale, setScale] = useState(1.0);
-  const [error, setError] = useState(null);
-
-  function onDocumentLoadSuccess({ numPages }) {
-    setNumPages(numPages);
-    setError(null);
-  }
-
-  function onDocumentLoadError(error) {
-    console.error("Error loading PDF:", error);
-    setError("Failed to load PDF. Please try again later.");
-  }
-
-  useEffect(() => {
-    const handleContextMenu = (e) => e.preventDefault();
-    document.addEventListener('contextmenu', handleContextMenu);
-    return () => document.removeEventListener('contextmenu', handleContextMenu);
-  }, []);
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white p-4 rounded-lg w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold">PDF Viewer</h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
-            <X size={24} />
-          </button>
-        </div>
-        <div className="flex-grow overflow-auto" style={{ WebkitUserSelect: 'none', userSelect: 'none' }}>
-          {error ? (
-            <div className="text-center text-red-500">{error}</div>
-          ) : (
-            <Document
-              file={url}
-              onLoadSuccess={onDocumentLoadSuccess}
-              onLoadError={onDocumentLoadError}
-              className="flex flex-col items-center"
-              loading={<div className="text-center">Loading PDF...</div>}
-            >
-              <Page 
-                pageNumber={pageNumber}  
-                scale={scale}
-                renderTextLayer={false}
-                renderAnnotationLayer={false}
-              />
-            </Document>
-          )}
-        </div>
-        <div className="mt-4 flex justify-between items-center">
-          <button
-            onClick={() => setPageNumber(page => Math.max(page - 1, 1))}
-            disabled={pageNumber <= 1}
-            className="px-4 py-2 bg-blue-500 text-white rounded disabled:bg-gray-300"
-          >
-            <ChevronLeft size={20} />
-          </button>
-          <div className="flex items-center space-x-4">
-            <button onClick={() => setScale(s => Math.max(s - 0.1, 0.5))} className="text-blue-500">
-              -
-            </button>
-            <span>{Math.round(scale * 100)}%</span>
-            <button onClick={() => setScale(s => Math.min(s + 0.1, 2))} className="text-blue-500">
-              +
-            </button>
-          </div>
-          <p className="text-sm">
-            Page {pageNumber} of {numPages}
-          </p>
-          <button
-            onClick={() => setPageNumber(page => Math.min(page + 1, numPages))}
-            disabled={pageNumber >= numPages}
-            className="px-4 py-2 bg-blue-500 text-white rounded disabled:bg-gray-300"
-          >
-            <ChevronRight size={20} />
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 const CommentForm = ({ onSubmit }) => {
   const [comment, setComment] = useState('');
 
@@ -181,7 +97,7 @@ const CommentForm = ({ onSubmit }) => {
   );
 };
 
-export default function CourseDetailsPage() {
+function CourseDetailsContent() {
   const searchParams = useSearchParams();
   const id = searchParams.get('id');
   const [courseData, setCourseData] = useState(null);
@@ -238,7 +154,6 @@ export default function CourseDetailsPage() {
     await updateDoc(noteRef, {
       comments: arrayUnion(newComment)
     });
-
     setCourseData(prevData => ({
       ...prevData,
       comments: [...(prevData.comments || []), newComment]
@@ -291,8 +206,9 @@ export default function CourseDetailsPage() {
       router.push(`/payment?id=${courseData.id}`);
     } else {
       if (courseData.pdfUrls && courseData.pdfUrls.length > 0) {
-        console.log("PDF URL:", courseData.pdfUrls[0]); // Log the PDF URL
-        setShowPDF(true);
+        const pdfUrl = courseData.pdfUrls[0];
+        // Directly use the PDF URL without going through the API
+        router.push(`/pdf-viewer?url=${encodeURIComponent(pdfUrl)}`);
       } else {
         console.error("No PDF URL available");
         alert("Sorry, the PDF is not available at the moment.");
@@ -423,13 +339,16 @@ export default function CourseDetailsPage() {
           )}
         </section>
       </main>
-
-      {showPDF && courseData.pdfUrls && courseData.pdfUrls.length > 0 && (
-        <PDFViewer 
-          url={courseData.pdfUrls[0]} 
-          onClose={() => setShowPDF(false)} 
-        />
-      )}
     </div>
+  );
+}
+
+export default function CourseDetailsPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">
+      <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-blue-500"></div>
+    </div>}>
+      <CourseDetailsContent />
+    </Suspense>
   );
 }

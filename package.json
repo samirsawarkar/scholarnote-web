@@ -11,16 +11,18 @@
   "dependencies": {
     "@stripe/react-stripe-js": "^2.8.0",
     "@stripe/stripe-js": "^4.4.0",
-    "firebase": "^10.13.1",
+    "firebase": "^10.14.1",
     "js-cookie": "^3.0.5",
     "lucide-react": "^0.439.0",
-    "next": "14.2.8",
-    "react": "^18",
-    "react-dom": "^18",
+    "next": "^14.2.15",
+    "pdfjs-dist": "^4.7.76",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
     "react-pdf": "^9.1.0",
     "uuid": "^10.0.0"
   },
   "devDependencies": {
+    "@types/json-schema": "^7.0.15",
     "eslint": "^8",
     "eslint-config-next": "14.2.8",
     "postcss": "^8",
